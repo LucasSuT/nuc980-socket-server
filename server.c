@@ -100,16 +100,16 @@ int main(int argc, char *argv[])
 	        if(n < 0)
     	    {
                 printf("\n client close connection. \n");
-                close(connfd);
 	            break;
     	    }
             recvBuff[n] = 0;
-            printf("recv: %s\n", recvBuff);
+            printf("recv: %d bytes %s\n", n, recvBuff);
             Order(recvBuff,n+1);
             snprintf(sendBuff, sizeof(sendBuff), "echo %s", recvBuff);
+            // sleep(5);
             write(connfd, sendBuff, strlen(sendBuff)); 
         }
+        close(connfd);
      }
-     close(connfd);
      sleep(1);
 }
