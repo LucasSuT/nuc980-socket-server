@@ -43,7 +43,7 @@ void Order(char* s,int len)
     {
         case 0x5:
         {
-            SetLedValue(cmd.dev_num,cmd.value);
+            // SetLedValue(cmd.dev_num,cmd.value);
             break;
         }        
         default:
@@ -54,14 +54,14 @@ void Order(char* s,int len)
 
 int main(int argc, char *argv[])
 {
-    int listenfd = 0, connfd = 0, n;
+    int listenfd = 0, connfd = 0, n, ret;
     socklen_t addrlen;
     struct sockaddr_in serv_addr, client_addr; 
 
     char sendBuff[1025], recvBuff[1024];
     time_t ticks; 
 
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    listenfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(listenfd == -1)
     {
         printf("\n Error : Could not create socket \n");
@@ -86,30 +86,35 @@ int main(int argc, char *argv[])
     char server_ip[22];
     inet_ntop(AF_INET, &serv_addr.sin_addr, server_ip, sizeof(server_ip));
     printf("\n server start at: %s:%d \n",server_ip, port);
-    printf("\n wait for connection... \n");
+    printf("\n wait for receive... \n");
     addrlen = sizeof(client_addr);
     while(1)
     {
-        connfd = accept(listenfd, (struct sockaddr*)&client_addr, &addrlen); 
+        n = recvfrom(listenfd, &recvBuff, sizeof(recvBuff), 0, (struct sockaddr*)&client_addr, (socklen_t *)&addrlen);
+        // n = read(connfd, recvBuff, sizeof(recvBuff)-1);
+        if(n < 0)
+        {
+            printf("\n client close connection. \n");
+            break;
+        }
         char client_ip[22];
         inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, sizeof(client_ip));
-        printf("connected by %s:%d\n", client_ip,ntohs(client_addr.sin_port));
-        
-        while(1){
-            n = read(connfd, recvBuff, sizeof(recvBuff)-1);
-	        if(n < 0)
-    	    {
-                printf("\n client close connection. \n");
-	            break;
-    	    }
-            recvBuff[n] = 0;
-            printf("recv: %d bytes %s\n", n, recvBuff);
-            Order(recvBuff,n+1);
-            snprintf(sendBuff, sizeof(sendBuff), "echo %s", recvBuff);
-            // sleep(5);
-            write(connfd, sendBuff, strlen(sendBuff)); 
+        printf("receive from %s:%d\n", client_ip,ntohs(client_addr.sin_port));
+
+        recvBuff[n] = 0;
+        printf("recv: %d bytes %s\n", n, recvBuff);
+
+        ret = sendto(listenfd,"server send",strlen("server send"),0,(struct sockaddr *)&client_addr,sizeof(client_addr));
+        if(ret < 0)
+        {
+            printf("boardcast failed !\n");
+            return 1;
         }
-        close(connfd);
+        Order(recvBuff,n+1);
+        // snprintf(sendBuff, sizeof(sendBuff), "echo %s", recvBuff);
+        // sleep(5);
+        // write(connfd, sendBuff, strlen(sendBuff)); 
      }
-     sleep(1);
+    close(connfd);
+    sleep(1);
 }
