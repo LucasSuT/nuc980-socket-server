@@ -10,7 +10,7 @@
 #include <time.h> 
 #include "led_cgi.c"
 
-int port = 7000;
+int port = 6000;
 
 typedef struct Command{
     unsigned int dev : 8;
@@ -74,15 +74,18 @@ int main(int argc, char *argv[])
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     serv_addr.sin_port = htons(port); 
 
+    ret = setsockopt(listenfd, SOL_SOCKET, SO_BROADCAST, &n,sizeof(n));
+    if(ret < 0)
+    {
+        printf("setsockopt failed !\n");
+        return 1;
+    }
+
     if(bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1)
     {
         printf("\n Error : Binding error \n");
     }
 
-    if(listen(listenfd, 10) == -1)
-    {
-        printf("\n Error : Listening error \n");
-    } 
     char server_ip[22];
     inet_ntop(AF_INET, &serv_addr.sin_addr, server_ip, sizeof(server_ip));
     printf("\n server start at: %s:%d \n",server_ip, port);
